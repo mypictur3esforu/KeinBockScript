@@ -1,11 +1,33 @@
+
+import java.util.HashMap;
+import java.util.regex.*;
+
 public class Interpreter {
    private String code;
+   private Runtime runtime = new Runtime();
+
+   SimpleStatementType[] simpleStatementTypes=new SimpleStatementType[]{
+      new SimpleStatementType("set",(line, runtime)->{
+         // System.out.println("Halo");
+         Pattern p = Pattern.compile("set ([a-zA-Z]*) = ([0-9]+)");
+         Matcher m = p.matcher(line);
+         String varName = "";
+         double value = 0;
+         while(m.find()){
+            varName = m.group(1);
+            value = Double.parseDouble(m.group(2));
+            System.out.println("Variable: " + m.group(1) + " to: " + m.group(2));
+         }
+         return new SimpleStatement();
+      })
+   };
 
    public static void execute(String code){
       Interpreter interpreter = new Interpreter(code);
    }
 
    public Interpreter(String code){
+
       this.code = extractCode(code);
       // System.out.println("Interpreter Code: "+ this.code);
 
@@ -29,9 +51,17 @@ public class Interpreter {
 
    private void interprete(String code){
       String[] lines = code.split("\n");
+      // simpleStatementTypes[0].parseFunction.parse(lines[0]);
+      for (String line : lines){
+         for (SimpleStatementType type : simpleStatementTypes){
+            Pattern typePat = Pattern.compile(type.getType());
+            Matcher matcher = typePat.matcher(line);
+            if(matcher.find()) type.parseFunction.parse(line);
+         }
+      }
    }
 
-   private smth getCommand(String line){
+   // private smth getCommand(String line){
       
-   }
+   // }
 }

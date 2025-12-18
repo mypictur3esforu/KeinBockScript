@@ -1,4 +1,4 @@
-@FunctionalInterface
-public interface ParseFunction {
-   SimpleStatement parse(String line, Runtime runtime);
-}
+// @FunctionalInterface
+// public interface ParseFunction {
+//    SimpleStatement parse(String line, Runtime runtime);
+// }

@@ -3,13 +3,13 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
-
 import javax.swing.*;
 
 public class Editor {
    private JFrame frame = new JFrame();
    private JPanel lines, code, menu;
-   private JSplitPane codeSplitPane, editorSplitPane;
+   private JLabel output;
+   private JSplitPane codeSplitPane, editorSplitPane, outputSplitPane;
    private Color color = new Color(194, 201, 209), fontColor = Color.black;
 
    public Editor() {
@@ -18,12 +18,18 @@ public class Editor {
       code = createCodeArea(color, fontColor);
       lines = createLineCounter(color, fontColor);
       menu = createMenu(color, fontColor);
+      output = createOutput(color, fontColor);
 
       codeSplitPane = createcodeSplitPane(lines, code);
-      editorSplitPane = createEditorSplitPane(menu, codeSplitPane);
+      outputSplitPane = createOutputSplitPane(codeSplitPane, output);
+      editorSplitPane = createEditorSplitPane(menu, outputSplitPane);
       // frame.add(codeSplitPane, BorderLayout.CENTER);
       frame.add(editorSplitPane, BorderLayout.CENTER);
       frame.setVisible(true);
+   }
+
+   public void print(String out){
+      output.setText(output.getText()+"\n"+out);
    }
 
    private JFrame createFrame() {
@@ -52,6 +58,13 @@ public class Editor {
       tsplitPane.setResizeWeight(0.05);
       return tsplitPane;
    }
+
+   private JSplitPane createOutputSplitPane(JSplitPane input, JLabel output) {
+      JSplitPane tsplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, input, output);
+      tsplitPane.setDividerLocation(0.8);
+      tsplitPane.setResizeWeight(0.9);
+      return tsplitPane;
+   }
    
    private JPanel createMenu(Color color, Color fontColor) {
       JPanel panel = new JPanel(new GridLayout(1, 1));
@@ -59,10 +72,16 @@ public class Editor {
 
       start.setBackground(color);
       start.setForeground(fontColor);
-      start.addActionListener((actionEvent) -> {Interpreter.execute(getCode());});
+      start.addActionListener((actionEvent) -> {Interpreter.execute(this, getCode());});
 
       panel.add(start);
       return panel;
+   }
+
+   private JLabel createOutput(Color color, Color fontColor){
+      JLabel label = new JLabel();
+
+      return label;
    }
 
    private JPanel createCodeArea(Color color, Color fontColor) {

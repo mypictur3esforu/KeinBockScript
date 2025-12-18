@@ -1,67 +1,161 @@
-
-import java.util.HashMap;
 import java.util.regex.*;
 
 public class Interpreter {
-   private String code;
-   private Runtime runtime = new Runtime();
 
-   SimpleStatementType[] simpleStatementTypes=new SimpleStatementType[]{
-      new SimpleStatementType("set",(line, runtime)->{
-         // System.out.println("Halo");
-         Pattern p = Pattern.compile("set ([a-zA-Z]*) = ([0-9]+)");
-         Matcher m = p.matcher(line);
-         String varName = "";
-         double value = 0;
-         while(m.find()){
-            varName = m.group(1);
-            value = Double.parseDouble(m.group(2));
-            System.out.println("Variable: " + m.group(1) + " to: " + m.group(2));
-         }
-         return new SimpleStatement();
-      })
-   };
+    private final String code;
+    private final Runtime runtime;
+    private Editor editor;
 
-   public static void execute(String code){
-      Interpreter interpreter = new Interpreter(code);
-   }
+    SimpleStatementType[] simpleStatementTypes = {
+            new SimpleStatementType(
+                    "set",
+                    "set ([a-zA-Z]+) = ([0-9]+)",
+                    (matcher, runtime) -> {
+                        String varName = matcher.group(1);
+                        double value = Double.parseDouble(matcher.group(2));
 
-   public Interpreter(String code){
+                        runtime.set(varName, value);
+                        // System.out.println("Set " + varName + " = " + value);
+                    }),
+            new SimpleStatementType(
+                    "add",
+                    "([a-zA-Z]+) \\+= ([0-9]+)",
+                    (matcher, runtime) -> {
+                        String varName = matcher.group(1);
+                        double add = Double.parseDouble(matcher.group(2));
+                        double varValue = runtime.get(varName);
 
-      this.code = extractCode(code);
-      // System.out.println("Interpreter Code: "+ this.code);
+                        runtime.set(varName, varValue + add);
+                    }),
+            new SimpleStatementType(
+                    "sub",
+                    "([a-zA-Z]+) -= ([0-9]+)",
+                    (matcher, runtime) -> {
+                        String varName = matcher.group(1);
+                        double sub = Double.parseDouble(matcher.group(2));
+                        double varValue = runtime.get(varName);
 
-      interprete(this.code);
-   }
+                        runtime.set(varName, varValue - sub);
+                    }),
+            new SimpleStatementType(
+                    "print",
+                    "print\\((\'([^,+]*)'(,|\\+)) ([a-zA-Z]*)\\)",
+                    (matcher, runtime) -> {
+                        String varName = matcher.group(4);
+                        double varValue = runtime.get(varName);
+                        print(matcher.group(2) + " " + varValue);
 
-   /**
-    * Löscht alles unnötige, wie leere Zeilen
-    * @param code Roher user input
-    * @return Essenzieller Code
-    */
-   private String extractCode(String code){
-      StringBuilder result = new StringBuilder();
-      for (String line : code.split("\n")) {
-          if (!line.isBlank()) {
-              result.append(line).append("\n");
-          }
-      }
-      return result.toString().trim();
-   }
+                    }),
+    };
 
-   private void interprete(String code){
-      String[] lines = code.split("\n");
-      // simpleStatementTypes[0].parseFunction.parse(lines[0]);
-      for (String line : lines){
-         for (SimpleStatementType type : simpleStatementTypes){
-            Pattern typePat = Pattern.compile(type.getType());
-            Matcher matcher = typePat.matcher(line);
-            if(matcher.find()) type.parseFunction.parse(line);
-         }
-      }
-   }
+    public static void execute(Editor editor, String code) {
+        Interpreter i = new Interpreter(editor, code);
+        System.out.println(i.getRuntime().get("x"));
+    }
 
-   // private smth getCommand(String line){
-      
-   // }
+    public void print(String output) {
+        editor.print(output);
+    }
+
+    public Interpreter(Editor editor, String code) {
+        this.runtime = new Runtime();
+        this.editor = editor;
+        this.code = extractCode(code);
+        interpret(this.code);
+    }
+
+    public Runtime getRuntime() {
+        return runtime;
+    }
+
+    private String extractCode(String code) {
+        StringBuilder result = new StringBuilder();
+        for (String line : code.split("\n")) {
+            if (!line.isBlank()) {
+                result.append(line.trim()).append("\n");
+            }
+        }
+        return result.toString().trim();
+    }
+
+    private void interpret(String code) {
+        String[] lines = code.split("\n");
+        System.out.println(lines.length);
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            boolean matched = false;
+
+            Pattern oBracket = Pattern.compile(".*\\{.*", Pattern.MULTILINE);
+            Matcher oBracketM = oBracket.matcher(line);
+            if (oBracketM.matches()) {
+                int end = findClosebracket(lines, i);
+                if (end == -1)
+                    throw new RuntimeException("Unclosed bracket " + line);
+                String area = "";
+                for (int z = i + 1; z < end; z++) {
+                    area += lines[z] + "\n";
+                }
+                if (checkIfCondition(lines[i]))
+                    interpret(area);
+                i = end;
+                continue;
+            }
+
+            for (SimpleStatementType type : simpleStatementTypes) {
+                Matcher matcher = type.getPattern().matcher(line);
+                if (matcher.matches()) {
+                    type.executor.execute(matcher, runtime);
+                    matched = true;
+                    break;
+                }
+            }
+
+            if (!matched) {
+                throw new RuntimeException("Unknown statement: " + line);
+            }
+        }
+    }
+
+    private int findClosebracket(String[] lines, int openingIndex) {
+        int level = 0;
+        Pattern cBracket = Pattern.compile(".*\\}", Pattern.MULTILINE);
+        Pattern oBracket = Pattern.compile(".*\\{.*", Pattern.MULTILINE);
+        for (int i = openingIndex; i < lines.length; i++) {
+            Matcher oBracketM = oBracket.matcher(lines[i]);
+            Matcher cBracketM = cBracket.matcher(lines[i]);
+            if (oBracketM.matches())
+                level++;
+            if (cBracketM.matches())
+                level--;
+            if (level == 0)
+                return i;
+        }
+        return -1;
+    }
+
+    private boolean checkIfCondition(String ifStatement) {
+        if (ifStatement.equals("{"))
+            return true;
+        Pattern ifPattern = Pattern.compile("if ([a-zA-Z]+) (==|!=|>=|<=|>|<) ([0-9]+) \\{");
+        Matcher mif = ifPattern.matcher(ifStatement);
+        if (!mif.matches())
+            throw new RuntimeException("Wrong if statement:");
+
+        String varName = mif.group(1);
+        String operator = mif.group(2);
+        double compareValue = Double.parseDouble(mif.group(3));
+
+        double varValue = runtime.get(varName);
+        boolean condition = switch (operator) {
+            case "==" -> varValue == compareValue;
+            case "!=" -> varValue != compareValue;
+            case ">" -> varValue > compareValue;
+            case "<" -> varValue < compareValue;
+            case ">=" -> varValue >= compareValue;
+            case "<=" -> varValue <= compareValue;
+            default -> false;
+        };
+        return condition;
+    }
 }

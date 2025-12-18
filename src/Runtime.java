@@ -1,10 +1,15 @@
-
 import java.util.HashMap;
-public class Runtime {
-   HashMap<String, Double> numbers = new HashMap<>();
 
+class Runtime {
+    private final HashMap<String, Double> vars = new HashMap<>();
 
-   public Runtime(){
-      
-   }
+    void set(String name, double value) {
+        vars.put(name, value);
+    }
+
+    double get(String name) {
+        if (!vars.containsKey(name))
+            throw new RuntimeException("Undefined variable: " + name);
+        return vars.get(name);
+    }
 }

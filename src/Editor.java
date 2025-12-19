@@ -1,166 +1,125 @@
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridLayout;
+import java.awt.*;
 import javax.swing.*;
+import javax.swing.event.*;
 
 public class Editor {
-   private JFrame frame = new JFrame();
-   private JPanel lines, code, menu;
-   private JLabel output;
-   private JSplitPane codeSplitPane, editorSplitPane, outputSplitPane;
-   private Color color = new Color(194, 201, 209), fontColor = Color.black;
+    private JFrame frame;
+    private JPanel menu;
+    private JTextArea codeArea;
+    private JTextArea output;
+    private JTextArea lineNumbers;
+    private JSplitPane editorSplitPane, codeSplitPane, outputSplitPane;
+    private Color color = new Color(194, 201, 209), fontColor = Color.black;
 
-   public Editor() {
-      // color = Color.CYAN;
-      frame = createFrame();
-      code = createCodeArea(color, fontColor);
-      lines = createLineCounter(color, fontColor);
-      menu = createMenu(color, fontColor);
-      output = createOutput(color, fontColor);
+    public Editor() {
+        frame = createFrame();
+        menu = createMenu(color, fontColor);
+        lineNumbers = createLineNumbers();
+        codeArea = createCodeArea();
+        outputSplitPane = createLayout();
+        frame.add(editorSplitPane, BorderLayout.CENTER);
+        frame.setVisible(true);
+        updateLineNumbers();
+    }
 
-      codeSplitPane = createcodeSplitPane(lines, code);
-      outputSplitPane = createOutputSplitPane(codeSplitPane, output);
-      editorSplitPane = createEditorSplitPane(menu, outputSplitPane);
-      // frame.add(codeSplitPane, BorderLayout.CENTER);
-      frame.add(editorSplitPane, BorderLayout.CENTER);
-      frame.setVisible(true);
-   }
+    private JFrame createFrame() {
+        JFrame tframe = new JFrame();
+        tframe.setLayout(new BorderLayout());
+        tframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        tframe.setName("Editor");
+        tframe.setMinimumSize(new Dimension(500, 500));
+        tframe.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        return tframe;
+    }
 
-   public void print(String out){
-      output.setText(output.getText()+"\n"+out);
-   }
+    private JPanel createMenu(Color color, Color fontColor) {
+        JPanel panel = new JPanel(new GridLayout(1, 1));
+        JButton start = new JButton("Start");
+        start.setBackground(color);
+        start.setForeground(fontColor);
+        start.addActionListener(e -> new Thread(() -> Interpreter.execute(this, getCode())).start());
+        panel.add(start);
+        return panel;
+    }
 
-   private JFrame createFrame() {
-      JFrame tframe = new JFrame();
+    private JTextArea createCodeArea() {
+        JTextArea ta = new JTextArea();
+        ta.setFont(new Font("Arial", Font.PLAIN, 20));
+        ta.setBackground(color);
+        ta.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { updateLineNumbers(); }
+            public void removeUpdate(DocumentEvent e) { updateLineNumbers(); }
+            public void changedUpdate(DocumentEvent e) { updateLineNumbers(); }
+        });
+        return ta;
+    }
 
-      tframe.setLayout(new BorderLayout());
-      tframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      tframe.setName("Editor");
-      tframe.setMinimumSize(new Dimension(500, 500));
-      tframe.setExtendedState(JFrame.MAXIMIZED_BOTH);
-      tframe.setVisible(true);
+    private JTextArea createLineNumbers() {
+        JTextArea ta = new JTextArea("1");
+        ta.setFont(new Font("Arial", Font.PLAIN, 20));
+        ta.setBackground(color);
+        ta.setForeground(fontColor);
+        ta.setEditable(false);
+        ta.setFocusable(false);
+        return ta;
+    }
 
-      return tframe;
-   }
+    private JScrollPane createOutput(Color color, Color fontColor) {
+        output = new JTextArea();
+        output.setEditable(false);
+        output.setLineWrap(true);
+        output.setWrapStyleWord(true);
+        output.setBackground(color);
+        output.setForeground(fontColor);
+        output.setFont(new Font("Monospaced", Font.PLAIN, 16));
+        JScrollPane scrollPane = new JScrollPane(output);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        return scrollPane;
+    }
 
-   private JSplitPane createEditorSplitPane(JPanel menu, JSplitPane codeSP){
-      JSplitPane tsp = new JSplitPane(JSplitPane.VERTICAL_SPLIT, menu, codeSP);
-      tsp.setDividerLocation(0.2);
-      tsp.setResizeWeight(0.1);
-      return tsp;
-   }
+    private JSplitPane createLayout() {
+        JScrollPane codeScrollPane = new JScrollPane(codeArea);
+        JScrollPane lineScrollPane = new JScrollPane(lineNumbers);
+        lineScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        lineScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
-   private JSplitPane createcodeSplitPane(JPanel lines, JPanel code) {
-      JSplitPane tsplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, lines, code);
-      tsplitPane.setDividerLocation(0.5);
-      tsplitPane.setResizeWeight(0.05);
-      return tsplitPane;
-   }
+        codeScrollPane.getViewport().addChangeListener(e -> {
+            JViewport viewport = (JViewport) e.getSource();
+            Rectangle viewRect = viewport.getViewRect();
+            lineNumbers.scrollRectToVisible(viewRect);
+        });
 
-   private JSplitPane createOutputSplitPane(JSplitPane input, JLabel output) {
-      JSplitPane tsplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, input, output);
-      tsplitPane.setDividerLocation(0.8);
-      tsplitPane.setResizeWeight(0.9);
-      return tsplitPane;
-   }
-   
-   private JPanel createMenu(Color color, Color fontColor) {
-      JPanel panel = new JPanel(new GridLayout(1, 1));
-      JButton start = new JButton("Start");
+        codeSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, lineScrollPane, codeScrollPane);
+        codeSplitPane.setDividerSize(1);
+        codeSplitPane.setDividerLocation(50);
+        codeSplitPane.setResizeWeight(0.0);
 
-      start.setBackground(color);
-      start.setForeground(fontColor);
-      start.addActionListener((actionEvent) -> {Interpreter.execute(this, getCode());});
+        JScrollPane outputPane = createOutput(color, fontColor);
 
-      panel.add(start);
-      return panel;
-   }
+        outputSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, codeSplitPane, outputPane);
+        outputSplitPane.setDividerLocation(0.7);
+        outputSplitPane.setResizeWeight(0.7);
 
-   private JLabel createOutput(Color color, Color fontColor){
-      JLabel label = new JLabel();
+        editorSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, menu, outputSplitPane);
+        editorSplitPane.setDividerLocation(0.1);
+        editorSplitPane.setResizeWeight(0.1);
 
-      return label;
-   }
+        return outputSplitPane;
+    }
 
-   private JPanel createCodeArea(Color color, Color fontColor) {
-      JPanel panel = new JPanel(new GridLayout(1, 1));
-      JTextArea textArea = new JTextArea();
+    public void print(String out) {
+        output.append(out + "\n");
+        output.setCaretPosition(output.getDocument().getLength());
+    }
 
-      textArea.setFont(new Font("Arial", Font.PLAIN, 20));
-      textArea.setBackground(color);
-      textArea.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-         @Override
-         public void insertUpdate(javax.swing.event.DocumentEvent e) {
-            updateLines();
-         }
+    private void updateLineNumbers() {
+        int lines = codeArea.getLineCount();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= lines; i++) sb.append(i).append("\n");
+        lineNumbers.setText(sb.toString());
+    }
 
-         @Override
-         public void removeUpdate(javax.swing.event.DocumentEvent e) {
-            updateLines();
-         }
-
-         @Override
-         public void changedUpdate(javax.swing.event.DocumentEvent e) {
-            updateLines();
-         }
-      });
-
-      panel.add(textArea);
-      return panel;
-   }
-
-   private JPanel createLineCounter(Color color, Color fontColor) {
-      JPanel panel = new JPanel(new GridLayout(1, 1));
-      JLabel label = new JLabel("1");
-
-      label.setFont(new Font("Arial", Font.PLAIN, 20));
-      label.setHorizontalAlignment(SwingConstants.CENTER);
-      label.setVerticalAlignment(SwingConstants.TOP);
-      label.setOpaque(true);
-      label.setBackground(color);
-      label.setForeground(fontColor);
-
-      panel.add(label);
-      return panel;
-   }
-
-   private void addLinesToLabel(JLabel label, String code) {
-      int lines = code.split("\n").length;
-      String counter = "<html>";
-      for (int i = 1; i <= lines; i++) {
-         counter += i + "<br>";
-      }
-      counter += "</html>";
-      label.setText(counter);
-   }
-
-   public void updateLines() {
-      JLabel label = getLineLabel();
-      String ta = getCode();
-
-      addLinesToLabel(label, ta);
-   }
-
-   private JLabel getLineLabel() {
-      JLabel label = new JLabel();
-      for (java.awt.Component component : lines.getComponents()) {
-         if (component instanceof JLabel) {
-            label = (JLabel) component;
-         }
-      }
-      return label;
-   }
-
-   public String getCode() {
-      JTextArea ta = new JTextArea("temp");
-      for (java.awt.Component component : code.getComponents()) {
-         if (component instanceof JTextArea) {
-            ta = (JTextArea) component;
-         }
-      }
-      // System.out.println("getCode: " + ta.getText());
-      return ta.getText();
-   }
+    public String getCode() {
+        return codeArea.getText();
+    }
 }

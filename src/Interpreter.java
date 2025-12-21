@@ -6,6 +6,8 @@ public class Interpreter {
     private final String code;
     private final Runtime runtime;
     private Editor editor;
+    private int holdLine = -1;
+    private String userInput;
 
     SimpleStatementType[] simpleStatementTypes = {
         new SimpleStatementType(
@@ -110,17 +112,18 @@ public class Interpreter {
             String funcName = matcher.group(1);
             interpret(runtime.getFunction(funcName));
         }
-        ),
-         new SimpleStatementType("userInput", "prompt ?\\( ?([a-zA-Z]+) ?\\)",
-        (matcher, runtime) -> {
-            String funcName = matcher.group(1);
-            
-        }
-        )
+         )//,
+        //  new SimpleStatementType("userInput", ,
+        // (matcher, runtime) -> {
+        //     String funcName = matcher.group(1);
+        //     // Hier anhalten
+        // }
+        // )
     };
 
-    public static void execute(Editor editor, String code) {
+    public static Interpreter execute(Editor editor, String code) {
         Interpreter i = new Interpreter(editor, code);
+        return i;
         // System.out.println(i.getRuntime().get("x"));
     }
 
@@ -140,6 +143,12 @@ public class Interpreter {
         return runtime;
     }
 
+    public void input(String input){
+        if (holdLine == -1) return;
+        userInput = input;
+        interpret(code);
+    }
+
     private String extractCode(String code) {
         StringBuilder result = new StringBuilder();
         for (String line : code.split("\n")) {
@@ -150,32 +159,41 @@ public class Interpreter {
         return result.toString().trim();
     }
 
-    private void interpret(String code) {
+    private synchronized void interpret(String code) {
         String[] lines = code.split("\n");
-        // System.out.println(lines.length);
 
         Pattern oBracket = Pattern.compile(".*\\{.*", Pattern.MULTILINE);
         for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
             boolean matched = false;
+            if (i < holdLine) continue;
 
+            String promptVar = checkPrompt(lines[i]);
+            if( promptVar != null) {
+                if (holdLine == -1){
+                    print("Eingabe: ");
+                    holdLine = i;
+                    break;
+                } else{
+                    holdLine = -1;
+                    runtime.set(promptVar, Double.parseDouble(userInput));
+                    continue;
+                }
+            }
             // Wenn irgendwas mit Klammer kommt (if, functions)
-            Matcher oBracketM = oBracket.matcher(line);
+            Matcher oBracketM = oBracket.matcher(lines[i]);
             if (oBracketM.matches()) {
                 int end = findClosebracket(lines, i);
                 String area = linesToCode(lines, i, end);
 
                 // Schauen was mit Klammer gemacht werden soll
-                if (checkIfCondition(lines[i])) {
-                    interpret(area);
-                }
+                if (checkIfCondition(lines[i])) interpret(area);
                 i = end;
                 continue;
             }
 
             // Einfach onliner Statements
             for (SimpleStatementType type : simpleStatementTypes) {
-                Matcher matcher = type.getPattern().matcher(line);
+                Matcher matcher = type.getPattern().matcher(lines[i]);
                 if (matcher.matches()) {
                     type.executor.execute(matcher, runtime);
                     matched = true;
@@ -184,7 +202,7 @@ public class Interpreter {
             }
 
             if (!matched) {
-                throw new RuntimeException("Unknown statement: " + line);
+                throw new RuntimeException("Unknown statement: " + lines[i]);
             }
         }
     }
@@ -216,6 +234,18 @@ public class Interpreter {
         }
         throw new RuntimeException("Unclosed bracket " + lines[openingIndex]);
         // return -1;
+    }
+
+    /**
+     * Überprüft, ob die Ziele ein prompt Befehl ist.
+     * @param line Zeile
+     * @return Wenn prompt Befehl dann return Variablen Namen. Ansonsten return null
+     */
+    private String checkPrompt(String line){
+        Pattern promptPattern = Pattern.compile("prompt ?\\( ?([a-zA-Z]+) ?\\)");
+        Matcher pm = promptPattern.matcher(line);
+        if (pm.matches()) return pm.group(1);
+        else return null;
     }
 
     private boolean checkIfCondition(String ifStatement) {

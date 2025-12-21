@@ -13,7 +13,8 @@ public class Editor {
     private Color color = new Color(133, 140, 138), fontColor = Color.white;
     private Color cAreaC = new Color(100, 100, 100);
     // Konsol Farben
-    private Color consoleColor = new Color(133, 140, 138), consoleInputC = new Color(30, 30, 40);
+    private Color consoleColor = new Color(83, 90, 88), consoleInputC = new Color(30, 30, 40);
+    private Interpreter interpreter;
 
     public Editor() {
         frame = createFrame();
@@ -40,8 +41,8 @@ public class Editor {
         private JPanel createTopBar(Color color, Color fontColor) {
         JPanel topBar = new JPanel(new GridLayout(1, 2));
 
-        topBar.add(createMenu(color, fontColor));          // links: Menü (50%)
-        topBar.add(createProgrammNameBar(color, fontColor)); // rechts: Name (50%)
+        topBar.add(createMenu(color, fontColor));
+        topBar.add(createProgrammNameBar(color, fontColor));
 
         return topBar;
     }
@@ -59,7 +60,8 @@ public class Editor {
             b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }
 
-        start.addActionListener(e -> new Thread(() -> Interpreter.execute(this, getCode())).start());
+        // start.addActionListener(e -> new Thread(() -> interpreter = Interpreter.execute(this, getCode())).start());
+        start.addActionListener(e -> interpreter = Interpreter.execute(this, getCode()));
 
         save.addActionListener(e -> {
             Storing.saveProgramm(getProgrammName(), getCode());
@@ -153,7 +155,7 @@ public class Editor {
             inputField.setText("");
 
             print("> " + input);
-            // Interpreter.input(input);
+            interpreter.input(input);
         });
 
         panel.add(outputPane, BorderLayout.CENTER);

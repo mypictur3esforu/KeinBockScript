@@ -7,6 +7,7 @@ public class Interpreter {
     private final Runtime runtime;
     private Editor editor;
     private int holdLine = -1;
+    private int[] emptyLineOffset;
     private String userInput;
 
     SimpleStatementType[] simpleStatementTypes = {
@@ -135,7 +136,7 @@ public class Interpreter {
         this.runtime = new Runtime();
         this.editor = editor;
         this.code = extractCode(code);
-        saveFunctions(code);
+        saveFunctions(this.code);
         interpret(this.code);
     }
 
@@ -150,32 +151,38 @@ public class Interpreter {
     }
 
     private String extractCode(String code) {
+        emptyLineOffset = new int[code.trim().split("\n").length -1];
         StringBuilder result = new StringBuilder();
+        int emptyLines = 0, i = 0;
         for (String line : code.split("\n")) {
             if (!line.isBlank()) {
                 result.append(line.trim()).append("\n");
-            }
+                emptyLineOffset[i] = emptyLines;
+                i++;
+            }else{
+                emptyLines++;}
         }
         return result.toString().trim();
     }
 
     private synchronized void interpret(String code) {
         String[] lines = code.split("\n");
+        // String[] lines = this.code.split("\n");
 
         Pattern oBracket = Pattern.compile(".*\\{.*", Pattern.MULTILINE);
         for (int i = 0; i < lines.length; i++) {
             boolean matched = false;
             if (i < holdLine) continue;
 
-            String promptVar = checkPrompt(lines[i]);
+            String[] promptVar = checkPrompt(lines[i]);
             if( promptVar != null) {
                 if (holdLine == -1){
-                    print("Eingabe: ");
+                    print(promptVar[1]);
                     holdLine = i;
                     break;
                 } else{
                     holdLine = -1;
-                    runtime.set(promptVar, Double.parseDouble(userInput));
+                    runtime.set(promptVar[0], Double.parseDouble(userInput));
                     continue;
                 }
             }
@@ -202,7 +209,8 @@ public class Interpreter {
             }
 
             if (!matched) {
-                throw new RuntimeException("Unknown statement: " + lines[i]);
+                // throw new RuntimeException("Unknown statement: " + lines[i]);
+                throwException(i, "Unknown Statement", lines[i]);
             }
         }
     }
@@ -232,19 +240,20 @@ public class Interpreter {
                 return i;
             }
         }
-        throw new RuntimeException("Unclosed bracket " + lines[openingIndex]);
-        // return -1;
+        // throw new RuntimeException("Unclosed bracket " + lines[openingIndex]);
+        throwException(openingIndex, "Unclosed Bracket", lines[openingIndex]);
+        return -1; // Wird niemals ausgeführt
     }
 
     /**
      * Überprüft, ob die Ziele ein prompt Befehl ist.
      * @param line Zeile
-     * @return Wenn prompt Befehl dann return Variablen Namen. Ansonsten return null
+     * @return line != prompt Befehl -> null; line == prompt -> [varName, PrintBefehl]
      */
-    private String checkPrompt(String line){
-        Pattern promptPattern = Pattern.compile("prompt ?\\( ?([a-zA-Z]+) ?\\)");
+    private String[] checkPrompt(String line){
+        Pattern promptPattern = Pattern.compile("([a-zA-Z]) ?= ?prompt ?\\( ?'([a-zA-Z ]+)' ?\\)");
         Matcher pm = promptPattern.matcher(line);
-        if (pm.matches()) return pm.group(1);
+        if (pm.matches()) return new String[]{pm.group(1), pm.group(2)};
         else return null;
     }
 
@@ -300,4 +309,11 @@ public class Interpreter {
             runtime.setFunction(mfunc.group(1), linesToCode(lines, i, closeBracket));
         }
     }
+
+    private void throwException(int lineNumber, String error, String line) throws RuntimeException{
+        lineNumber += emptyLineOffset[lineNumber] + 1;
+        editor.setErrorLine(lineNumber);
+        throw new RuntimeException("Line " + lineNumber + ": "+error+": "+ line);
+    }
+
 }

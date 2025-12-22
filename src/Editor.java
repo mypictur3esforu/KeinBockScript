@@ -1,6 +1,8 @@
 import java.awt.*;
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Highlighter;
 
 public class Editor {
     private JFrame frame;
@@ -15,6 +17,7 @@ public class Editor {
     // Konsol Farben
     private Color consoleColor = new Color(83, 90, 88), consoleInputC = new Color(30, 30, 40);
     private Interpreter interpreter;
+    private int errorLine = -1;
 
     public Editor() {
         frame = createFrame();
@@ -27,6 +30,15 @@ public class Editor {
         frame.add(editorSplitPane, BorderLayout.CENTER);
         frame.setVisible(true);
         updateLineNumbers();
+    }
+
+    private void executeProgramm(){
+        try {
+            interpreter = Interpreter.execute(this, getCode());
+        } catch (RuntimeException e) {
+            error(e);
+        }
+
     }
 
     private JFrame createFrame() {
@@ -61,14 +73,14 @@ public class Editor {
         }
 
         // start.addActionListener(e -> new Thread(() -> interpreter = Interpreter.execute(this, getCode())).start());
-        start.addActionListener(e -> interpreter = Interpreter.execute(this, getCode()));
+        start.addActionListener(e -> executeProgramm());
 
         save.addActionListener(e -> {
             Storing.saveProgramm(getProgrammName(), getCode());
         });
 
         load.addActionListener(e -> {
-            // TODO: Laden
+            ProgramLoader.getDesiredProgramm(this);
         });
 
         panel.add(start);
@@ -216,5 +228,33 @@ public class Editor {
 
     public String getProgrammName() {
         return programmNameField.getText();
+    }
+
+    public void loadProgramm(String name, String code){
+        name = name.replaceFirst("\\.txt$", "");
+        programmNameField.setText(name);
+        codeArea.setText(code);
+    }
+
+    private void error(Exception e){
+        System.out.println(e);
+        print(e.getMessage());
+        highlightLine(errorLine);
+    }
+
+    private void highlightLine(int line){
+        Highlighter hg = lineNumbers.getHighlighter();
+        Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.red);
+        try {
+            int start = lineNumbers.getLineStartOffset(line-1);
+            int end = lineNumbers.getLineEndOffset(line-1);
+            hg.addHighlight(start, end, painter);
+        } catch (Exception e) {
+            System.out.println("Line not highlighted: " + line);
+        }
+    }
+
+    public void setErrorLine(int line){
+        errorLine = line;
     }
 }

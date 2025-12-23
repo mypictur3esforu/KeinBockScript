@@ -1,9 +1,13 @@
 
+import java.util.ArrayList;
+
+
 public class Value {
    private ValueType vt;
    private String string;
    private double number;
    private boolean bool;
+   private ArrayList<Value> array;
 
    Value(String string) {
       vt = ValueType.STRING;
@@ -20,12 +24,18 @@ public class Value {
       this.bool = bool;
    }
 
+   Value(ArrayList<Value> array) {
+      vt = ValueType.ARRAY;
+      this.array = array;
+   }
+
   @Override
     public String toString() {
         return switch (vt) {
             case NUMBER -> Double.toString(number);
             case STRING -> string;
             case BOOLEAN -> Boolean.toString(bool);
+            case ARRAY -> array.toString();
         };
     }
 
@@ -44,5 +54,9 @@ public class Value {
    public boolean getBoolean() {
        if (vt != ValueType.BOOLEAN) throw new RuntimeException(vt + " can not be used as " + ValueType.BOOLEAN);
       return bool;
+    }
+   public Value getValueFromArray(int index) {
+      //  if (vt != ValueType.BOOLEAN) throw new RuntimeException(vt + " can not be used as " + ValueType.BOOLEAN);
+      return array.get(index);
     }
 }

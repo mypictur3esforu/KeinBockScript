@@ -1,8 +1,8 @@
 
 
 func helloWorld(){
-boolean x = false
-if (!x){
+string x = 'String'
+if (x == 'String'){
 print('Hallo')
 }
 }

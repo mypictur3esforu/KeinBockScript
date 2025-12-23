@@ -1,5 +1,6 @@
 public enum ValueType {
    STRING,
    NUMBER,
-   BOOLEAN
+   BOOLEAN,
+   ARRAY
 }

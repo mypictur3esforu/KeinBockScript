@@ -61,13 +61,14 @@ public class Editor {
     }
 
     private JPanel createMenu(Color color, Color fontColor) {
-        JPanel panel = new JPanel(new GridLayout(1, 3, 10, 0));
+        JPanel panel = new JPanel(new GridLayout(1, 4, 10, 0));
 
         JButton start = new JButton("Start");
         JButton save = new JButton("Speichern");
         JButton load = new JButton("Laden");
+        JButton toggleDebug = new JButton("Turn Debug on");
 
-        for (JButton b : new JButton[] { start, save, load }) {
+        for (JButton b : new JButton[] { start, save, load, toggleDebug}) {
             b.setBackground(color);
             b.setForeground(fontColor);
             b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -84,9 +85,16 @@ public class Editor {
             ProgramLoader.getDesiredProgramm(this);
         });
 
+        toggleDebug.addActionListener(e -> {
+            boolean db = interpreter.debugg();
+            if(db)toggleDebug.setText("Turn debugger off");
+            else toggleDebug.setText("Turn debugger on");
+        });
+
         panel.add(start);
         panel.add(save);
         panel.add(load);
+        panel.add(toggleDebug);
 
         return panel;
     }

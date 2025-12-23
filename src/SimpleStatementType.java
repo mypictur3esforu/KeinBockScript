@@ -1,4 +1,6 @@
+import java.util.ArrayList;
 import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 class SimpleStatementType {
     private final String name;
@@ -10,6 +12,8 @@ class SimpleStatementType {
         this.pattern = Pattern.compile(regex);
         this.executor = executor;
     }
+
+    String getName(){return name;}
 
     Pattern getPattern() {
         return pattern;
@@ -132,6 +136,66 @@ class SimpleStatementType {
             String varName = matcher.group(1);
             if (!isNumber(runtime, varName)) throw new RuntimeException("Not a number var");
             runtime.set(varName, runtime.get(varName).getNumber() - 1);
+        }),
+        new SimpleStatementType(
+        "array",
+        "string\\[\\] ("+varRegex+") ?= ?\\[ ?(("+stringReg+", ?)*"+stringReg+")\\]",
+        // "(num|string|boolean)[] "+varRegex+" ?= ?new (num|string|boolean)([ ?"+numReg+" ?]|[]{"+numReg+"|"+stringReg+"|"+boolReg+"})",
+        (matcher, runtime) -> {
+            String varName = matcher.group(1);
+            String arrVs = matcher.group(2);
+            String[] values = arrVs.split(",");
+            ArrayList<Value> vList = new ArrayList();
+            for (String value : values){
+                Value v = new Value(value);
+                vList.add(v);
+            }
+            runtime.set(varName, new Value(vList));
+        }),
+        new SimpleStatementType(
+            "array",
+        "num\\[\\] ("+varRegex+") ?= ?\\[(("+numReg+" ?,)*"+numReg+")\\]",
+        // "(num|string|boolean)[] "+varRegex+" ?= ?new (num|string|boolean)([ ?"+numReg+" ?]|[]{"+numReg+"|"+stringReg+"|"+boolReg+"})",
+        (matcher, runtime) -> {
+            String varName = matcher.group(1);
+            String arrVs = matcher.group(2);
+            String[] values = arrVs.split("\n");
+            ArrayList<Value> vList = new ArrayList();
+            for (String value : values){
+                Value v = new Value(Double.parseDouble(value));
+                vList.add(v);
+            }
+            runtime.set(varName, new Value(vList));
+        }),
+        new SimpleStatementType(
+        "array",
+        "boolean\\[\\] ("+varRegex+") ?= ?\\[(("+boolReg+" ?,)*"+boolReg+")\\]",
+        // "(num|string|boolean)[] "+varRegex+" ?= ?new (num|string|boolean)([ ?"+numReg+" ?]|[]{"+numReg+"|"+stringReg+"|"+boolReg+"})",
+        (matcher, runtime) -> {
+            String varName = matcher.group(1);
+            String arrVs = matcher.group(2);
+            String[] values = arrVs.split("\n");
+            ArrayList<Value> vList = new ArrayList();
+            for (String value : values){
+                Value v = new Value(Boolean.parseBoolean((value)));
+                vList.add(v);
+            }
+            runtime.set(varName, new Value(vList));
+        }),
+        new SimpleStatementType("arrayValue", "("+varRegex+") ?= ?("+varRegex+")\\[("+numReg+"|"+varRegex+")\\]", (matcher, runtime)->{
+            String varName = matcher.group(1);
+            String varName2 = matcher.group(2);
+            String indexer = matcher.group(3);
+            Pattern numPattern = Pattern.compile(numReg);
+            Matcher numPM = numPattern.matcher(indexer);
+            int index;
+            if (numPM.matches()) index = Integer.parseInt(indexer);
+            else index = (int) runtime.get(indexer).getNumber();
+            Value v = runtime.get(varName2).getValueFromArray(index);
+            Value varV = runtime.get(varName);
+            if (varV.getValueType() == ValueType.STRING)runtime.set(varName, v.getString());
+            if (varV.getValueType() == ValueType.BOOLEAN)runtime.set(varName, v.getBoolean());
+            if (varV.getValueType() == ValueType.NUMBER)runtime.set(varName, v.getNumber());
         })
     };
     return simpleStatementTypes;

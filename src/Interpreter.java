@@ -6,12 +6,13 @@ public class Interpreter {
     private final String code;
     private final Runtime runtime;
     private Editor editor;
-    private int holdLine = -1;
+    private int holdLine = -1, holdDebugLine = -1;
     private int[] emptyLineOffset;
+    private boolean debugger = false;
     private String userInput;
     private SimpleStatementType[] simpleStatementTypes = getSimpleStatementTypes();
 
-    private final String varRegex = "[a-zA-Z]+", numReg = "[0-9]+", stringReg = "' ?[^'] ?'", boolReg = "true|false", termReg = "";
+    private final String varRegex = "[a-zA-Z]+", numReg = "[0-9]+", stringReg = "'[^']*'", boolReg = "true|false", termReg = "";
 
 
    private SimpleStatementType[] getSimpleStatementTypes() {
@@ -84,6 +85,11 @@ public class Interpreter {
         return runtime;
     }
 
+    public boolean debugg(){
+        debugger = !debugger;
+        return debugger;
+    }
+
     public void input(String input){
         if (holdLine == -1) return;
         userInput = input;
@@ -115,11 +121,12 @@ public class Interpreter {
         String[] lines = code.split("\n");
         // String[] lines = this.code.split("\n");
 
-            Pattern oBracket = Pattern.compile(".*\\{.*", Pattern.MULTILINE);
+        
+        Pattern oBracket = Pattern.compile(".*\\{.*", Pattern.MULTILINE);
         for (int i = 0; i < lines.length; i++) {
             boolean matched = false;
-            if (i < holdLine) continue;
-
+            if (i < holdLine || i < holdDebugLine) continue;
+            
             String[] promptVar = checkPrompt(lines[i]);
             if( promptVar != null) {
                 if (holdLine == -1){
@@ -132,14 +139,23 @@ public class Interpreter {
                     continue;
                 }
             }
-            // Wenn irgendwas mit { Klammer kommt (if, functions)
+            // if (debugger){
+            //     if (holdDebugLine == -1) holdDebugLine = 0;
+            //     holdLine++;
+            //     break;
+            // }
+            // Wenn irgendwas mit { Klammer kommt (if, functions, while)
             Matcher oBracketM = oBracket.matcher(lines[i]);
             if (oBracketM.matches()) {
-                    int end = findClosebracket(lines, i);
+                int end = findClosebracket(lines, i);
                 String area = linesToCode(lines, i, end);
 
                 // Schauen was mit Klammer gemacht werden soll
                 if (checkIfCondition(lines[i])) interpret(area);
+                else{
+                    String fakeIf = lines[i].replaceFirst("while", "if");
+                    while (checkIfCondition(fakeIf)) interpret(area);
+                }
                 i = end;
                 continue;
             }
@@ -220,7 +236,7 @@ public class Interpreter {
             }
         }
 
-        Pattern ifPattern = Pattern.compile("if ?\\( ?("+varRegex+") ?(==|!=|>=|<=|>|<) ?("+numReg+") ?\\) ?\\{");
+        Pattern ifPattern = Pattern.compile("if ?\\( ?("+varRegex+") ?(==|!=|>=|<=|>|<) ?("+numReg+"|"+stringReg+") ?\\) ?\\{");
         Matcher mif = ifPattern.matcher(ifStatement);
         if (!mif.matches()) {
             return false;
@@ -232,7 +248,7 @@ public class Interpreter {
         String compareV = mif.group(3);
 
         Value value = runtime.get(varName);
-        if (isString(runtime, varName) && operator.equals("==")) return varName.equals(compareV);
+        if (isString(runtime, varName) && operator.equals("==")) return value.getString().equals(compareV);
 
         double varValue = value.getNumber();
         double compareValue = Double.parseDouble(compareV);

@@ -5,8 +5,5 @@ Eigener Interpreter für eine simple Programmiersprache
 ## TO DO
 
 -Verschachtelte Terme
-
-## Optional
-
 -Arrays
--Strings
+-Debugger

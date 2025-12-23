@@ -6,7 +6,7 @@ class Runtime {
     private final Map<String, Value> vars = new HashMap<>();
     private final Map<String, String> functions = new HashMap<>();
 
-    private void set(String name, Value value) {
+    public void set(String name, Value value) {
         vars.put(name, value);
     }
 

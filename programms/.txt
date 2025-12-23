@@ -1,0 +1,10 @@
+
+
+func helloWorld(){
+boolean x = false
+if (!x){
+print('Hallo')
+}
+}
+
+helloWorld()

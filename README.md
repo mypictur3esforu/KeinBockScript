@@ -3,8 +3,8 @@
 Eigener Interpreter für eine simple Programmiersprache
 
 ## TO DO
--Fehlermeldungen
--Verschatelte Terme
+
+-Verschachtelte Terme
 
 ## Optional
 

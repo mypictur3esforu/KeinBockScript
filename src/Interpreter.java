@@ -9,118 +9,58 @@ public class Interpreter {
     private int holdLine = -1;
     private int[] emptyLineOffset;
     private String userInput;
+    private SimpleStatementType[] simpleStatementTypes = getSimpleStatementTypes();
 
-    SimpleStatementType[] simpleStatementTypes = {
-        new SimpleStatementType(
-        "set",
-        "set ([a-zA-Z]+) = ([0-9]+)",
-        (matcher, runtime) -> {
-            String varName = matcher.group(1);
-            double value = Double.parseDouble(matcher.group(2));
-            runtime.set(varName, value);
-        }),
-        new SimpleStatementType(
-        "setVar",
-        "set ([a-zA-Z]+) = ([a-zA-Z]+)",
-        (matcher, runtime) -> {
-            String target = matcher.group(1);
-            String source = matcher.group(2);
-            runtime.set(target, runtime.get(source));
-        }),
-        new SimpleStatementType(
-        "add",
-        "([a-zA-Z]+) \\+= ([0-9]+)",
-        (matcher, runtime) -> {
-            String varName = matcher.group(1);
-            double add = Double.parseDouble(matcher.group(2));
-            runtime.set(varName, runtime.get(varName) + add);
-        }),
-        new SimpleStatementType(
-        "addVar",
-        "([a-zA-Z]+) \\+= ([a-zA-Z]+)",
-        (matcher, runtime) -> {
-            String a = matcher.group(1);
-            String b = matcher.group(2);
-            runtime.set(a, runtime.get(a) + runtime.get(b));
-        }),
-        new SimpleStatementType(
-        "sub",
-        "([a-zA-Z]+) -= ([0-9]+)",
-        (matcher, runtime) -> {
-            String varName = matcher.group(1);
-            double sub = Double.parseDouble(matcher.group(2));
-            runtime.set(varName, runtime.get(varName) - sub);
-        }),
-        new SimpleStatementType(
-        "mul",
-        "([a-zA-Z]+) \\*= ([0-9]+)",
-        (matcher, runtime) -> {
-            String varName = matcher.group(1);
-            double mul = Double.parseDouble(matcher.group(2));
-            runtime.set(varName, runtime.get(varName) * mul);
-        }),
-        new SimpleStatementType(
-        "div",
-        "([a-zA-Z]+) /= ([0-9]+)",
-        (matcher, runtime) -> {
-            String varName = matcher.group(1);
-            double div = Double.parseDouble(matcher.group(2));
-            runtime.set(varName, runtime.get(varName) / div);
-        }),
-        new SimpleStatementType(
-        "mod",
-        "([a-zA-Z]+) %= ([0-9]+)",
-        (matcher, runtime) -> {
-            String varName = matcher.group(1);
-            double mod = Double.parseDouble(matcher.group(2));
-            runtime.set(varName, runtime.get(varName) % mod);
-        }),
-        new SimpleStatementType(
-        "inc",
-        "([a-zA-Z]+)\\+\\+",
-        (matcher, runtime) -> {
-            String varName = matcher.group(1);
-            runtime.set(varName, runtime.get(varName) + 1);
-        }),
-        new SimpleStatementType(
-        "dec",
-        "([a-zA-Z]+)--",
-        (matcher, runtime) -> {
-            String varName = matcher.group(1);
-            runtime.set(varName, runtime.get(varName) - 1);
-        }),
-        new SimpleStatementType(
+    private final String varRegex = "[a-zA-Z]+", numReg = "[0-9]+", stringReg = "' ?[^'] ?'", boolReg = "true|false", termReg = "";
+
+
+   private SimpleStatementType[] getSimpleStatementTypes() {
+
+    String varRegex = "[a-zA-Z]+";
+
+    SimpleStatementType[] base =
+            SimpleStatementType.getSimpleStatements();
+
+    SimpleStatementType[] result =
+            new SimpleStatementType[base.length + 4];
+
+    System.arraycopy(base, 0, result, 0, base.length);
+
+    result[base.length] = new SimpleStatementType(
         "printVar",
-        "print\\(([a-zA-Z]+)\\)",
+        "print\\(("+varRegex+")\\)",
         (matcher, runtime) -> {
             String varName = matcher.group(1);
-            print(String.valueOf(runtime.get(varName)));
-        }),
-        new SimpleStatementType(
+            print(runtime.get(varName).toString());
+        }
+    );
+
+    result[base.length + 1] = new SimpleStatementType(
         "printString",
         "print\\('([^']*)'\\)",
         (matcher, runtime) -> {
             print(matcher.group(1));
-        }),
-        new SimpleStatementType(
+        }
+    );
+
+    result[base.length + 2] = new SimpleStatementType(
         "printStringVar",
-        "print\\('([^']*)' \\+ ([a-zA-Z]+)\\)",
+        "print\\('([^']*)' \\+ ("+varRegex+")\\)",
         (matcher, runtime) -> {
             print(matcher.group(1) + runtime.get(matcher.group(2)));
-        }),
-        new SimpleStatementType("functionCall", "([a-zA-Z][a-zA-Z0-9]*)\\( ?\\)",
-        (matcher, runtime) -> {
-            String funcName = matcher.group(1);
-            interpret(runtime.getFunction(funcName));
         }
-         )//,
-        //  new SimpleStatementType("userInput", ,
-        // (matcher, runtime) -> {
-        //     String funcName = matcher.group(1);
-        //     // Hier anhalten
-        // }
-        // )
-    };
+    );
+
+    result[base.length + 3] = new SimpleStatementType(
+        "functionCall",
+        "([a-zA-Z][a-zA-Z0-9]*)\\( ?\\)",
+        (matcher, runtime) -> {
+            interpret(runtime.getFunction(matcher.group(1)));
+        }
+    );
+
+    return result;
+}
 
     public static Interpreter execute(Editor editor, String code) {
         Interpreter i = new Interpreter(editor, code);
@@ -147,11 +87,16 @@ public class Interpreter {
     public void input(String input){
         if (holdLine == -1) return;
         userInput = input;
-        interpret(code);
+        try {
+            interpret(code);
+        } catch (RuntimeException e) {
+            int line = Integer.parseInt(e.getMessage());
+            throwException(line, "Unknown Statement", code);
+        }
     }
 
     private String extractCode(String code) {
-        emptyLineOffset = new int[code.trim().split("\n").length -1];
+        emptyLineOffset = new int[code.trim().split("\n").length];
         StringBuilder result = new StringBuilder();
         int emptyLines = 0, i = 0;
         for (String line : code.split("\n")) {
@@ -165,11 +110,12 @@ public class Interpreter {
         return result.toString().trim();
     }
 
-    private synchronized void interpret(String code) {
+    private void interpret(String code) throws RuntimeException {
+        // int stackTrace = Thread.currentThread().getStackTrace().length;
         String[] lines = code.split("\n");
         // String[] lines = this.code.split("\n");
 
-        Pattern oBracket = Pattern.compile(".*\\{.*", Pattern.MULTILINE);
+            Pattern oBracket = Pattern.compile(".*\\{.*", Pattern.MULTILINE);
         for (int i = 0; i < lines.length; i++) {
             boolean matched = false;
             if (i < holdLine) continue;
@@ -186,10 +132,10 @@ public class Interpreter {
                     continue;
                 }
             }
-            // Wenn irgendwas mit Klammer kommt (if, functions)
+            // Wenn irgendwas mit { Klammer kommt (if, functions)
             Matcher oBracketM = oBracket.matcher(lines[i]);
             if (oBracketM.matches()) {
-                int end = findClosebracket(lines, i);
+                    int end = findClosebracket(lines, i);
                 String area = linesToCode(lines, i, end);
 
                 // Schauen was mit Klammer gemacht werden soll
@@ -198,19 +144,25 @@ public class Interpreter {
                 continue;
             }
 
-            // Einfach onliner Statements
+            // Einfache oneliner Statements
             for (SimpleStatementType type : simpleStatementTypes) {
                 Matcher matcher = type.getPattern().matcher(lines[i]);
                 if (matcher.matches()) {
-                    type.executor.execute(matcher, runtime);
+                    try {
+                        type.executor.execute(matcher, runtime);
+                    } catch (Exception e) {
+                        throwException(i, "Unknown Statement "+e.getMessage()+" in function", lines[i]);
+                    }
                     matched = true;
                     break;
                 }
             }
 
             if (!matched) {
+                throw new RuntimeException(lines[i] +" (line "+i+")");
                 // throw new RuntimeException("Unknown statement: " + lines[i]);
-                throwException(i, "Unknown Statement", lines[i]);
+                // if (stackTrace > 32) runtime.get
+                // throwException(i, "Unknown Statement", lines[i]);
             }
         }
     }
@@ -251,16 +203,24 @@ public class Interpreter {
      * @return line != prompt Befehl -> null; line == prompt -> [varName, PrintBefehl]
      */
     private String[] checkPrompt(String line){
-        Pattern promptPattern = Pattern.compile("([a-zA-Z]) ?= ?prompt ?\\( ?'([a-zA-Z ]+)' ?\\)");
+        Pattern promptPattern = Pattern.compile("([a-zA-Z]+) ?= ?prompt ?\\( ?'([^']+)' ?\\)");
         Matcher pm = promptPattern.matcher(line);
         if (pm.matches()) return new String[]{pm.group(1), pm.group(2)};
         else return null;
     }
 
     private boolean checkIfCondition(String ifStatement) {
-        // if (ifStatement.equals("{"))
-        //     return true;
-        Pattern ifPattern = Pattern.compile("if ?\\( ?([a-zA-Z]+) ?(==|!=|>=|<=|>|<) ?([0-9]+) ?\\) ?\\{");
+        Pattern boolIf = Pattern.compile("if ?\\( ?(!?)("+varRegex+" ?)\\) ?\\{");
+        Matcher moolif = boolIf.matcher(ifStatement);
+        if (moolif.matches()){
+            Value value = runtime.get(moolif.group(2));
+            if (isBoolean(runtime, moolif.group(2))){
+                if (moolif.group(1).equals("!")) return !value.getBoolean();
+                else return value.getBoolean();
+            }
+        }
+
+        Pattern ifPattern = Pattern.compile("if ?\\( ?("+varRegex+") ?(==|!=|>=|<=|>|<) ?("+numReg+") ?\\) ?\\{");
         Matcher mif = ifPattern.matcher(ifStatement);
         if (!mif.matches()) {
             return false;
@@ -269,9 +229,13 @@ public class Interpreter {
 
         String varName = mif.group(1);
         String operator = mif.group(2);
-        double compareValue = Double.parseDouble(mif.group(3));
+        String compareV = mif.group(3);
 
-        double varValue = runtime.get(varName);
+        Value value = runtime.get(varName);
+        if (isString(runtime, varName) && operator.equals("==")) return varName.equals(compareV);
+
+        double varValue = value.getNumber();
+        double compareValue = Double.parseDouble(compareV);
         boolean condition = switch (operator) {
             case "==" ->
                 varValue == compareValue;
@@ -311,9 +275,21 @@ public class Interpreter {
     }
 
     private void throwException(int lineNumber, String error, String line) throws RuntimeException{
-        lineNumber += emptyLineOffset[lineNumber] + 1;
+        lineNumber = emptyLineOffset[lineNumber] + lineNumber + 1;
         editor.setErrorLine(lineNumber);
+        // lineNumber++;
         throw new RuntimeException("Line " + lineNumber + ": "+error+": "+ line);
     }
+
+    // Bin mir bewusst, dass es sich doppelt, aber halte das hier für angemessener und vor allem angenehmer
+    private static boolean isNumber(Runtime runtime, String varName){
+        Value value = runtime.get(varName);
+        return value.getValueType() == ValueType.NUMBER;}
+    private static boolean isString(Runtime runtime, String varName){
+        Value value = runtime.get(varName);
+        return value.getValueType() == ValueType.STRING;}
+    private static boolean isBoolean(Runtime runtime, String varName){
+        Value value = runtime.get(varName);
+        return value.getValueType() == ValueType.BOOLEAN;}
 
 }

@@ -1,6 +1,7 @@
 import java.awt.*;
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.text.AbstractDocument;
 import javax.swing.text.DefaultHighlighter;
 import javax.swing.text.Highlighter;
 
@@ -112,21 +113,21 @@ public class Editor {
         ta.setFont(new Font("Arial", Font.PLAIN, 20));
         ta.setBackground(color);
         ta.setForeground(fontColor);
+
+        AbstractDocument doc = (AbstractDocument) ta.getDocument();
+        doc.putProperty("owner", ta);
+        doc.setDocumentFilter(new AutoBracketFilter());
+
         ta.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) {
-                updateLineNumbers();
-            }
+            public void insertUpdate(DocumentEvent e) {updateLineNumbers();}
 
-            public void removeUpdate(DocumentEvent e) {
-                updateLineNumbers();
-            }
+            public void removeUpdate(DocumentEvent e) {updateLineNumbers();}
 
-            public void changedUpdate(DocumentEvent e) {
-                updateLineNumbers();
-            }
+            public void changedUpdate(DocumentEvent e) {updateLineNumbers();}
         });
         return ta;
     }
+
 
     private JTextArea createLineNumbers() {
         JTextArea ta = new JTextArea("1");
@@ -237,7 +238,7 @@ public class Editor {
     }
 
     private void error(Exception e){
-        System.out.println(e);
+        // System.out.println(e);
         print(e.getMessage());
         highlightLine(errorLine);
     }

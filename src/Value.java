@@ -42,21 +42,29 @@ public class Value {
     public ValueType getValueType(){ return vt;}
     
     public double getNumber() {
-      if (vt != ValueType.NUMBER) throw new RuntimeException(vt + " can not be used as " + ValueType.NUMBER);
+      if (vt != ValueType.NUMBER) datatypeError(ValueType.NUMBER);
       return number;
    }
    
    public String getString() {
-       if (vt != ValueType.STRING) throw new RuntimeException(vt + " can not be used as " + ValueType.STRING);
+       if (vt != ValueType.STRING) datatypeError(ValueType.STRING);
        return string;
       }
       
    public boolean getBoolean() {
-       if (vt != ValueType.BOOLEAN) throw new RuntimeException(vt + " can not be used as " + ValueType.BOOLEAN);
+       if (vt != ValueType.BOOLEAN) datatypeError(ValueType.BOOLEAN);
       return bool;
     }
    public Value getValueFromArray(int index) {
       //  if (vt != ValueType.BOOLEAN) throw new RuntimeException(vt + " can not be used as " + ValueType.BOOLEAN);
       return array.get(index);
+    }
+    public ArrayList<Value> getArray(){
+      if (vt != ValueType.ARRAY) datatypeError(ValueType.ARRAY);
+      return array;
+    }
+
+    private void datatypeError(ValueType wVT){
+      throw new RuntimeException(vt + " can not be used as " + wVT);
     }
 }

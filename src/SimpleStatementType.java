@@ -1,6 +1,6 @@
 import java.util.ArrayList;
-import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class SimpleStatementType {
     private final String name;
@@ -138,7 +138,7 @@ class SimpleStatementType {
             runtime.set(varName, runtime.get(varName).getNumber() - 1);
         }),
         new SimpleStatementType(
-        "array",
+        "string array",
         "string\\[\\] ("+varRegex+") ?= ?\\[ ?(("+stringReg+", ?)*"+stringReg+")\\]",
         // "(num|string|boolean)[] "+varRegex+" ?= ?new (num|string|boolean)([ ?"+numReg+" ?]|[]{"+numReg+"|"+stringReg+"|"+boolReg+"})",
         (matcher, runtime) -> {
@@ -153,7 +153,7 @@ class SimpleStatementType {
             runtime.set(varName, new Value(vList));
         }),
         new SimpleStatementType(
-            "array",
+            "number array",
         "num\\[\\] ("+varRegex+") ?= ?\\[(("+numReg+" ?,)*"+numReg+")\\]",
         // "(num|string|boolean)[] "+varRegex+" ?= ?new (num|string|boolean)([ ?"+numReg+" ?]|[]{"+numReg+"|"+stringReg+"|"+boolReg+"})",
         (matcher, runtime) -> {
@@ -168,7 +168,7 @@ class SimpleStatementType {
             runtime.set(varName, new Value(vList));
         }),
         new SimpleStatementType(
-        "array",
+        "boolean array",
         "boolean\\[\\] ("+varRegex+") ?= ?\\[(("+boolReg+" ?,)*"+boolReg+")\\]",
         // "(num|string|boolean)[] "+varRegex+" ?= ?new (num|string|boolean)([ ?"+numReg+" ?]|[]{"+numReg+"|"+stringReg+"|"+boolReg+"})",
         (matcher, runtime) -> {
@@ -196,6 +196,22 @@ class SimpleStatementType {
             if (varV.getValueType() == ValueType.STRING)runtime.set(varName, v.getString());
             if (varV.getValueType() == ValueType.BOOLEAN)runtime.set(varName, v.getBoolean());
             if (varV.getValueType() == ValueType.NUMBER)runtime.set(varName, v.getNumber());
+        }),
+        new SimpleStatementType("array split", "string ("+varRegex+") ?= ?("+varRegex+")\\.split\\(("+stringReg+")\\)", (matcher, runtime) ->{
+            String arrName = matcher.group(1);
+            String varName = matcher.group(2);
+            String regex = matcher.group(3);
+
+            ArrayList<Value> parts = new ArrayList<>();
+            for (String part : runtime.get(varName).getString().split(regex)){
+                parts.add(new Value(part));
+            }
+            runtime.set(arrName, new Value(parts));
+        }),
+        new SimpleStatementType("array length", "num ("+varRegex+") ?= ?("+varRegex+")\\.length", (matcher, runtime)->{
+            String varName = matcher.group(1);
+            String arrName = matcher.group(2);
+            runtime.set(varName, runtime.get(arrName).getArray().size());
         })
     };
     return simpleStatementTypes;

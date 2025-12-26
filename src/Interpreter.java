@@ -236,7 +236,7 @@ public class Interpreter {
             }
         }
 
-        Pattern ifPattern = Pattern.compile("if ?\\( ?("+varRegex+") ?(==|!=|>=|<=|>|<) ?("+numReg+"|"+stringReg+") ?\\) ?\\{");
+        Pattern ifPattern = Pattern.compile("if ?\\( ?("+varRegex+") ?(==|!=|>=|<=|>|<) ?("+numReg+"|"+stringReg+"|"+varRegex+") ?\\) ?\\{");
         Matcher mif = ifPattern.matcher(ifStatement);
         if (!mif.matches()) {
             return false;
@@ -246,6 +246,8 @@ public class Interpreter {
         String varName = mif.group(1);
         String operator = mif.group(2);
         String compareV = mif.group(3);
+
+        if (Pattern.matches(varRegex, compareV)) compareV = runtime.get(compareV).toString();
 
         Value value = runtime.get(varName);
         if (isString(runtime, varName) && operator.equals("==")) return value.getString().equals(compareV);

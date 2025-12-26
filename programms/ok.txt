@@ -1,8 +1,11 @@
 string[] x = ['ok','danke','tschüss']
 string y = ' '
 num i = 0
-while(i<3){
-y = x[i]
-print(y)
-i++
+
+num z = x.length
+
+while(i<z){
+  y = x[i]
+  print(y)
+  i++
 }

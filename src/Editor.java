@@ -78,7 +78,9 @@ public class Editor {
         start.addActionListener(e -> executeProgramm());
 
         save.addActionListener(e -> {
-            Storing.saveProgramm(getProgrammName(), getCode());
+            String pName = getProgrammName();
+            if (!pName.isBlank()) Storing.saveProgramm(pName, getCode());
+            else print("You need to store a name first if you want to save the programm!");
         });
 
         load.addActionListener(e -> {

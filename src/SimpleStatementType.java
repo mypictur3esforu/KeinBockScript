@@ -6,21 +6,28 @@ class SimpleStatementType {
     private final String name;
     private final Pattern pattern;
     final StatementExecutor executor;
-
+    
     SimpleStatementType(String name, String regex, StatementExecutor executor) {
         this.name = name;
         this.pattern = Pattern.compile(regex);
         this.executor = executor;
     }
-
+    
     String getName(){return name;}
-
+    
     Pattern getPattern() {
         return pattern;
     }
 
+    private static String stripQuotes(String s) {
+        if (s.startsWith("'") && s.endsWith("'")) {
+            return s.substring(1, s.length() - 1);
+        }
+        return s;
+    }
+    
     public static SimpleStatementType[] getSimpleStatements(){
-            final String varRegex = "[a-zA-Z]+", numReg = "[0-9]+", stringReg = "'[^']*'", boolReg = "true|false", termReg = "";
+        final String varRegex = "[a-zA-Z]+", numReg = "[0-9]+", stringReg = "'[^']*'", boolReg = "true|false", termReg = "";
         SimpleStatementType[] simpleStatementTypes = {
         new SimpleStatementType(
         "set",
@@ -35,7 +42,7 @@ class SimpleStatementType {
         "string ("+varRegex+") = ("+stringReg+")",
         (matcher, runtime) -> {
             String varName = matcher.group(1);
-            String value = matcher.group(2);
+            String value = stripQuotes(matcher.group(2));
             runtime.set(varName, value);
         }),
         new SimpleStatementType(
@@ -64,12 +71,13 @@ class SimpleStatementType {
             runtime.set(varName, runtime.get(varName).getNumber() + add);
         }),
         new SimpleStatementType(
-        "add",
+        "add String",
         "("+varRegex+") \\+= ("+stringReg+")",
         (matcher, runtime) -> {
             String varName = matcher.group(1);
             if (!isString(runtime, varName)) throw new RuntimeException("!String += String");
-            String add = (matcher.group(2));
+            String add = stripQuotes(matcher.group(2));
+            String temp = runtime.get(varName).getString() + add;
             runtime.set(varName, runtime.get(varName).getString() + add);
         }),
         new SimpleStatementType(
@@ -82,7 +90,7 @@ class SimpleStatementType {
                 Value v2 = runtime.get(b);
                 if (v1.getValueType() == ValueType.BOOLEAN || v1.getValueType() != v2.getValueType()) throw new RuntimeException("Incompatible datatypes");
                 else if (v1.getValueType() == ValueType.NUMBER) runtime.set(a, v2.getNumber() + v1.getNumber());
-                else if (v1.getValueType() == ValueType.STRING) runtime.set(a, v2.getString() + v1.getString());
+                else if (v1.getValueType() == ValueType.STRING) runtime.set(a, v1.getString() + v2.getString());
                 
         }),
         new SimpleStatementType(
@@ -147,7 +155,7 @@ class SimpleStatementType {
             String[] values = arrVs.split(",");
             ArrayList<Value> vList = new ArrayList();
             for (String value : values){
-                Value v = new Value(value);
+                Value v = new Value(stripQuotes(value));
                 vList.add(v);
             }
             runtime.set(varName, new Value(vList));
@@ -159,7 +167,7 @@ class SimpleStatementType {
         (matcher, runtime) -> {
             String varName = matcher.group(1);
             String arrVs = matcher.group(2);
-            String[] values = arrVs.split("\n");
+            String[] values = arrVs.split(",");
             ArrayList<Value> vList = new ArrayList();
             for (String value : values){
                 Value v = new Value(Double.parseDouble(value));
@@ -174,7 +182,7 @@ class SimpleStatementType {
         (matcher, runtime) -> {
             String varName = matcher.group(1);
             String arrVs = matcher.group(2);
-            String[] values = arrVs.split("\n");
+            String[] values = arrVs.split(",");
             ArrayList<Value> vList = new ArrayList();
             for (String value : values){
                 Value v = new Value(Boolean.parseBoolean((value)));
@@ -182,7 +190,8 @@ class SimpleStatementType {
             }
             runtime.set(varName, new Value(vList));
         }),
-        new SimpleStatementType("arrayValue", "("+varRegex+") ?= ?("+varRegex+")\\[("+numReg+"|"+varRegex+")\\]", (matcher, runtime)->{
+        // var1 = var2[index]; var 1 muss definiert sein, damit Variable Typ klar ist (bisschen faule Lösung) 
+        new SimpleStatementType("array Value by index", "("+varRegex+") ?= ?("+varRegex+")\\[("+numReg+"|"+varRegex+")\\]", (matcher, runtime)->{
             String varName = matcher.group(1);
             String varName2 = matcher.group(2);
             String indexer = matcher.group(3);
@@ -197,10 +206,10 @@ class SimpleStatementType {
             if (varV.getValueType() == ValueType.BOOLEAN)runtime.set(varName, v.getBoolean());
             if (varV.getValueType() == ValueType.NUMBER)runtime.set(varName, v.getNumber());
         }),
-        new SimpleStatementType("array split", "string ("+varRegex+") ?= ?("+varRegex+")\\.split\\(("+stringReg+")\\)", (matcher, runtime) ->{
+        new SimpleStatementType("array split", "string\\[\\] ("+varRegex+") ?= ?("+varRegex+")\\.split\\(("+stringReg+")\\)", (matcher, runtime) ->{
             String arrName = matcher.group(1);
             String varName = matcher.group(2);
-            String regex = matcher.group(3);
+            String regex = stripQuotes(matcher.group(3));
 
             ArrayList<Value> parts = new ArrayList<>();
             for (String part : runtime.get(varName).getString().split(regex)){
@@ -211,8 +220,35 @@ class SimpleStatementType {
         new SimpleStatementType("array length", "num ("+varRegex+") ?= ?("+varRegex+")\\.length", (matcher, runtime)->{
             String varName = matcher.group(1);
             String arrName = matcher.group(2);
-            runtime.set(varName, runtime.get(arrName).getArray().size());
-        })
+            runtime.set(varName, new Value(runtime.get(arrName).getArray().size()));
+        }),
+        new SimpleStatementType(
+    "array add last",
+    "("+varRegex+")\\.add\\(("+numReg+"|"+stringReg+"|"+boolReg+"|"+varRegex+")\\)",
+    (matcher, runtime) -> {
+        String arrName = matcher.group(1);
+        String value = stripQuotes(matcher.group(2));
+        Value arr = runtime.get(arrName);
+
+        arr.getArray().add(new Value(value));
+    }),
+    new SimpleStatementType(
+    "array add index",
+    "("+varRegex+")\\.add\\(("+numReg+"|"+varRegex+"), ?("+numReg+"|"+stringReg+"|"+boolReg+"|"+varRegex+")\\)",
+    (matcher, runtime) -> {
+        String arrName = matcher.group(1);
+        String indexRaw = matcher.group(2);
+        String value = stripQuotes(matcher.group(3));
+
+        Value arr = runtime.get(arrName);
+
+        int index = indexRaw.matches(numReg)
+                ? Integer.parseInt(indexRaw)
+                : (int) runtime.get(indexRaw).getNumber();
+
+        arr.getArray().add(index, new Value(value));
+    }
+),
     };
     return simpleStatementTypes;
     }
@@ -227,3 +263,6 @@ class SimpleStatementType {
         Value value = runtime.get(varName);
         return value.getValueType() == ValueType.BOOLEAN;}
 }
+
+
+// Strins müssen anders verarbeitet werden, weil '' zum String zählt

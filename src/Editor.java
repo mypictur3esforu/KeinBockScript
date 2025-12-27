@@ -135,6 +135,15 @@ public class Editor {
 
             public void changedUpdate(DocumentEvent e) {updateLineNumbers();}
         });
+        InputMap im = ta.getInputMap();
+        ActionMap am = ta.getActionMap();
+
+        im.put(KeyStroke.getKeyStroke("alt UP"), "moveLineUp");
+        im.put(KeyStroke.getKeyStroke("alt DOWN"), "moveLineDown");
+
+        am.put("moveLineUp", new LineMover(ta, true));
+        am.put("moveLineDown", new LineMover(ta, false));
+
         return ta;
     }
 

@@ -1,0 +1,13 @@
+string input = prompt('Map:')
+
+string[] map = input.split(' ')
+
+num i = 0
+num max = map.length
+while(i < max){
+
+string line = ''
+line = map[i]
+print(line)
+i++
+}

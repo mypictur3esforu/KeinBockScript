@@ -2,10 +2,24 @@ string[] x = ['ok','danke','tschüss']
 string y = ' '
 num i = 0
 
-num z = x.length
+num[] poss = [1,3]
+num posLen = poss.length
+while(i < posLen){
+num pos = 0
+pos = poss[i]
+x.add(pos,'.')
+i++
+}
 
+num z = x.length
+num i = 0
+
+string result = ''
 while(i<z){
   y = x[i]
   print(y)
+  result += y
   i++
 }
+print(result)
+

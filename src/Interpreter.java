@@ -96,8 +96,9 @@ public class Interpreter {
         try {
             interpret(code);
         } catch (RuntimeException e) {
-            int line = Integer.parseInt(e.getMessage());
-            throwException(line, "Unknown Statement", code);
+            // int line = Integer.parseInt(e.getMessage());
+            // throwException(0, "Unknown Statement", code);
+            print(e.getMessage() );
         }
     }
 
@@ -106,13 +107,14 @@ public class Interpreter {
         StringBuilder result = new StringBuilder();
         int emptyLines = 0, i = 0;
         for (String line : code.split("\n")) {
-            if (!line.isBlank()) {
+            if (!line.isBlank() && !line.startsWith("//")) {
                 result.append(line.trim()).append("\n");
                 emptyLineOffset[i] = emptyLines;
                 i++;
             }else{
                 emptyLines++;}
         }
+        if (result.isEmpty()) throw new RuntimeException("Empty Programm");
         return result.toString().trim();
     }
 
@@ -135,7 +137,8 @@ public class Interpreter {
                     break;
                 } else{
                     holdLine = -1;
-                    runtime.set(promptVar[0], Double.parseDouble(userInput));
+                    // runtime.set(promptVar[0], Double.parseDouble(userInput));
+                    runtime.set(promptVar[0], (userInput));
                     continue;
                 }
             }
@@ -219,7 +222,7 @@ public class Interpreter {
      * @return line != prompt Befehl -> null; line == prompt -> [varName, PrintBefehl]
      */
     private String[] checkPrompt(String line){
-        Pattern promptPattern = Pattern.compile("([a-zA-Z]+) ?= ?prompt ?\\( ?'([^']+)' ?\\)");
+        Pattern promptPattern = Pattern.compile("string ([a-zA-Z]+) ?= ?prompt ?\\( ?'([^']+)' ?\\)");
         Matcher pm = promptPattern.matcher(line);
         if (pm.matches()) return new String[]{pm.group(1), pm.group(2)};
         else return null;

@@ -137,8 +137,8 @@ public class Interpreter {
                     break;
                 } else{
                     holdLine = -1;
-                    // runtime.set(promptVar[0], Double.parseDouble(userInput));
-                    runtime.set(promptVar[0], (userInput));
+                    if(promptVar[2].equals("num")) runtime.set(promptVar[0], Double.parseDouble(userInput));
+                    else if(promptVar[2].equals("string")) runtime.set(promptVar[0], (userInput));
                     continue;
                 }
             }
@@ -219,12 +219,12 @@ public class Interpreter {
     /**
      * Überprüft, ob die Ziele ein prompt Befehl ist.
      * @param line Zeile
-     * @return line != prompt Befehl -> null; line == prompt -> [varName, PrintBefehl]
+     * @return line != prompt Befehl -> null; line == prompt -> [varName, PrintBefehl, datatype]
      */
     private String[] checkPrompt(String line){
-        Pattern promptPattern = Pattern.compile("string ([a-zA-Z]+) ?= ?prompt ?\\( ?'([^']+)' ?\\)");
+        Pattern promptPattern = Pattern.compile("(string|num) ([a-zA-Z]+) ?= ?prompt ?\\( ?'([^']+)' ?\\)");
         Matcher pm = promptPattern.matcher(line);
-        if (pm.matches()) return new String[]{pm.group(1), pm.group(2)};
+        if (pm.matches()) return new String[]{pm.group(2), pm.group(3), pm.group(1)};
         else return null;
     }
 

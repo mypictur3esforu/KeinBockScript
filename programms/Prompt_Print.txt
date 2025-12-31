@@ -1,2 +1,2 @@
-x = prompt('Gib hier eine Zahl ein')
+num x = prompt('Gib hier eine Zahl ein')
 print(x)

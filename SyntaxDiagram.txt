@@ -1,10 +1,5 @@
-public class App {
-    public static void main(String[] args) throws Exception {
-        System.out.println("App gestartet");
-        Editor e = new Editor();
-    }
 
-/*
+
 programm =
 {(statement|controlStructure), "\n"}
 |"func", function,"()", "{", {(statement|controlStructure), "\n"}, "}";
@@ -13,7 +8,7 @@ statement =
 setStatement
 | arrayStatement
 | function, "()"
-| variable, "=", "prompt(", string, ")"
+| ("string"|"num"), variable, "=", "prompt(", string, ")"
 | "print(", (string|variable|string, "+", variable), ")"
 | variable, mathOp, (number|variable)
 | variable, "+=", (string|variable)
@@ -98,5 +93,3 @@ letter
 | digit
 | " " | "." | "," | "_" | "-" | "!" | "..."
 ;
-*/
-}

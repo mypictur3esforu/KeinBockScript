@@ -1,8 +1,0 @@
-
-
-func helloWorld(){
-x = prompt('Gibe ne Zahl ein: ')
-print(x)
-}
-
-helloWorld()

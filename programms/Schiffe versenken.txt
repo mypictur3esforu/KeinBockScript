@@ -1,0 +1,140 @@
+
+//Spielfeld Größe
+num width = 10
+num height = 10
+num oneD = width
+oneD *= height
+
+
+start()
+print(boats)
+usersTurn()
+
+
+func start(){
+//Feld erstellen
+num[] map = []
+
+num i = 0
+while(i<oneD){
+i++
+map.add(0)
+}
+
+
+//Schiffe setzen
+num[] boatsStart = []
+num i = 0
+while(i <= 5){
+num ranpos = random(0,oneD)
+  num z = boatsStart.length
+//print(boatsStart)
+boolean new = true
+  while (z > 0){
+     z--
+     num pos = 0
+     pos = boatsStart[z]
+   if(ranpos == pos){
+    boolean new = false
+}
+}
+if(new){
+boatsStart.add(ranpos)
+i++
+}
+}
+
+//print(boatsStart)
+
+//Schiffe ausbauen
+num[] dir = [1]
+dir.add(width)
+width--
+dir.add(width)
+width += 2
+dir.add(width)
+width--
+//print(dir)
+
+//Richtung in die das Boot gebaut wird
+//num[] boatLength = [5,5,5,5,6]
+num[] boatLength = [2,3,4,4,5]
+num fmax = boatLength.length
+num i = 0
+num[] boats = []
+
+while (i<fmax){
+
+num l = dir.length
+l--
+num rDir = random(0,l)
+rDir = dir[rDir]
+
+num r = random(0,1)
+num direction = 0
+if (r == 0){
+direction -= rDir
+}
+if (r == 1){
+direction += rDir
+}
+//print(direction)
+
+num z = 0
+num max = 0
+max = boatLength[i]
+
+while(z <max){
+num start = 0
+start = boatsStart[i]
+num add = z
+add*= direction
+start+= add
+boolean added = false
+if (start >= 0){
+if (start < 100){
+boats.add(start)
+boolean added = true
+}
+}
+z++
+}
+i++
+}
+num l = boats.length
+if(l < 18){
+num[] boats = []
+start()
+}
+}
+
+
+func usersTurn(){
+num pos = prompt('Auf welches Feld schießt du?')
+num i = 0
+num max = boats.length
+boolean hit = false
+
+while(i<max){
+num bpos = 0
+bpos = boats[i]
+if(pos == bpos){
+hit = true
+}
+
+i++
+}
+
+if (hit){
+print('Hit')
+}
+if(!hit){
+print('No hit')
+}
+
+}
+
+
+
+
+

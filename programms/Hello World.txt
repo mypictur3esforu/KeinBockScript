@@ -1,5 +1,5 @@
-func HelloWorld(){
+func helloWorld(){
 print('Hello World')
 }
 
-HelloWorld()
+helloWorld()
